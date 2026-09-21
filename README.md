@@ -102,6 +102,9 @@ Printer Class (07/01) interface.
 - **Optional: a 0.91" I2C OLED display** (SSD1306, 128×32) — GPIO4 (SDA)
   and GPIO5 (SCL) on this board are free and used for it if enabled.
 
+![Device-1](esp32-c6-ch375b-printserver-device-1.png)
+![Device-2](esp32-c6-ch375b-printserver-device-2.png)
+
 ## Known-good / known-tricky printers
 
 Any printer with a genuine PCL, PostScript, or similar printer-side
