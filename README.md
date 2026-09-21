@@ -18,7 +18,7 @@ Built and tested against, for example, an **HP LaserJet P2015**, but
 should work with any printer exposing a standard bidirectional USB
 Printer Class (07/01) interface. 
 
-
+![Portal](esp32-c6-ch375-printserver-portal.png)
 
 ## Features
 
