@@ -581,18 +581,18 @@ bool findBulkInEndpoint(const USBConfigurationDescriptorFull &cfg, uint8_t *epIn
   return false;
 }
 
-bool initPrinter() {
+bool initPrinter(bool verbose = true) {
   USBDeviceDescriptor devDesc;
-  Serial.println("[USB] Сброс шины и ожидание подключения устройства...");
+  if (verbose) Serial.println("[USB] Сброс шины и ожидание подключения устройства...");
   if (!ch375ResetAndGetDeviceDescriptor(&devDesc)) {
-    Serial.println("[USB] Не удалось получить Device Descriptor (таймаут или неверные данные).");
+    if (verbose) Serial.println("[USB] Не удалось получить Device Descriptor (таймаут или неверные данные).");
     return false;
   }
   Serial.printf("[USB] Устройство найдено: VID=%04X PID=%04X класс=%02X\n",
                 devDesc.idVendor, devDesc.idProduct, devDesc.bDeviceClass);
 
   if (!ch375SetAddress(1)) {
-    Serial.println("[USB] Не удалось назначить USB-адрес устройству.");
+    if (verbose) Serial.println("[USB] Не удалось назначить USB-адрес устройству.");
     return false;
   }
   printerUsbAddress = 1;
@@ -607,7 +607,7 @@ bool initPrinter() {
 
   USBConfigurationDescriptorFull cfgDesc;
   if (!ch375GetFullConfigurationDescriptor(&cfgDesc)) {
-    Serial.println("[USB] Не удалось прочитать Configuration Descriptor.");
+    if (verbose) Serial.println("[USB] Не удалось прочитать Configuration Descriptor.");
     return false;
   }
   Serial.printf("[USB] Интерфейс: класс=%02X подкласс=%02X протокол=%02X, эндпоинтов=%d\n",
@@ -615,12 +615,12 @@ bool initPrinter() {
                 cfgDesc.interface.bInterfaceProtocol, cfgDesc.interface.bNumEndpoints);
 
   if (!ch375SetConfiguration(cfgDesc.configuration.bConfigurationValue)) {
-    Serial.println("[USB] Не удалось выставить Configuration.");
+    if (verbose) Serial.println("[USB] Не удалось выставить Configuration.");
     return false;
   }
 
   if (!findBulkOutEndpoint(cfgDesc, &printerOutEndpoint, &printerOutMaxPacket)) {
-    Serial.println("[USB] Не найден bulk OUT эндпоинт.");
+    if (verbose) Serial.println("[USB] Не найден bulk OUT эндпоинт.");
     return false;
   }
   Serial.printf("[USB] Bulk OUT эндпоинт: 0x%02X, максимальный пакет: %u байт\n",
@@ -640,15 +640,31 @@ bool initPrinter() {
 
 void checkPrinterConnection() {
   static unsigned long lastCheckMs = 0;
+  static unsigned long lastEnumAttemptMs = 0;
+  static int enumFailStreak = 0;
   const unsigned long CHECK_INTERVAL_MS = 2000;
   if (millis() - lastCheckMs < CHECK_INTERVAL_MS) return;
   lastCheckMs = millis();
 
   bool alive = ch375CheckExist(0x5A);
   if (alive && !printerReady) {
-    Serial.println("[USB] CH375 отвечает, пробуем enumeration принтера...");
-    printerReady = initPrinter();
-    if (printerReady) Serial.println("[USB] Принтер готов.");
+    // Пока принтер физически выключен, CH375 всё равно жив и отвечает —
+    // без бэкоффа мы долбили бы полную энумерацию (и лог) каждые 2с
+    // бесконечно. После нескольких неудач подряд разрежаем попытки и
+    // логируем только первую и затем изредка, а не каждый раз.
+    unsigned long retryIntervalMs = (enumFailStreak >= 3) ? 10000 : 2000;
+    if (millis() - lastEnumAttemptMs < retryIntervalMs) return;
+    lastEnumAttemptMs = millis();
+
+    bool verbose = (enumFailStreak == 0) || (enumFailStreak % 18 == 0); // напоминание примерно раз в 3 минуты
+    if (verbose) Serial.println("[USB] CH375 отвечает, пробуем enumeration принтера...");
+    printerReady = initPrinter(verbose);
+    if (printerReady) {
+      Serial.println("[USB] Принтер готов.");
+      enumFailStreak = 0;
+    } else {
+      enumFailStreak++;
+    }
     recomputeIdleLedState();
   } else if (!alive && printerReady) {
     Serial.println("[USB] Связь с CH375 потеряна — сбрасываем состояние принтера.");
@@ -658,7 +674,10 @@ void checkPrinterConnection() {
     printerStatusDisplay = "";
     printerStatusOnline = false;
     printerManufacturer = ""; printerModel = ""; printerSerial = ""; printerUsbAddress = 0;
+    enumFailStreak = 0;
     recomputeIdleLedState();
+  } else if (alive && printerReady) {
+    enumFailStreak = 0;
   }
 }
 
