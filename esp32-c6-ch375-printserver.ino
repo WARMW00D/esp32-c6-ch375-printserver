@@ -1400,7 +1400,10 @@ void handleDescriptionXml() {
                "<deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType>\r\n"
                "<friendlyName>ESP32-C6 Print Server</friendlyName>\r\n"
                "<manufacturer>DIY</manufacturer>\r\n"
+               "<manufacturerURL>https://github.com</manufacturerURL>\r\n"
                "<modelName>CH375 Print Server</modelName>\r\n"
+               "<modelDescription>WiFi to USB printer bridge (ESP32-C6 + CH375B)</modelDescription>\r\n"
+               "<presentationURL>http://" + ip + "/</presentationURL>\r\n"
                "<UDN>uuid:" + ssdpUuid + "</UDN>\r\n"
                "</device>\r\n"
                "</root>\r\n";
