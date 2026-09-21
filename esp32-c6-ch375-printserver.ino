@@ -1051,8 +1051,11 @@ input{width:100%;padding:9px;margin-top:6px;box-sizing:border-box;
 button.wide{margin-top:10px;width:100%;padding:10px;background:#3b82f6;color:#fff;
        border:none;border-radius:8px;font-size:.92rem;cursor:pointer}
 .hint{color:#64748b;font-size:.75rem;margin-top:6px}
-a.btn{display:block;text-align:center;margin-top:10px;padding:10px;
-      background:#7f1d1d;color:#fecaca;border-radius:8px;text-decoration:none;font-weight:600}
+.btn{display:block;width:100%;text-align:center;margin-top:10px;padding:10px;
+      border-radius:8px;text-decoration:none;font-weight:600;border:none;
+      font-size:.92rem;cursor:pointer;font-family:inherit}
+.btn-change{background:#3b82f6;color:#fff}
+.btn-reset{background:#7f1d1d;color:#fecaca}
 .instructions{margin-top:16px}
 .instructions .grid{grid-template-columns:1fr 1fr}
 .instructions ol{padding-left:20px;font-size:.88rem;line-height:1.6}
@@ -1089,7 +1092,8 @@ a.btn{display:block;text-align:center;margin-top:10px;padding:10px;
     <div class="row"><span id="l_ip">IP address</span><span id="v_ip">-</span></div>
     <div class="row"><span id="l_mac">MAC</span><span id="v_mac">-</span></div>
     <div class="row"><span id="l_signal">Signal</span><span id="v_signal">-</span></div>
-    <a class="btn" href="/wifi" id="wifiBtn">Reset WiFi settings</a>
+    <a class="btn btn-change" href="/wifi" id="l_changeWifiBtn">Change WiFi settings</a>
+    <button class="btn btn-reset" onclick="resetWifi()" id="l_resetWifiBtn">Reset WiFi settings</button>
   </div>
   <div class="card">
     <h3 id="l_sysCard">System</h3>
@@ -1124,7 +1128,9 @@ const dict = {
     status:"Status", manufacturer:"Manufacturer", model:"Model", serial:"Serial number",
     usbCard:"USB Connection", status2:"Status", devAddr:"Device address", bulkOut:"Bulk OUT",
     bulkIn:"Bulk IN", pktSize:"Packet size", wifiCard:"Wi-Fi", network:"Network", ip:"IP address",
-    mac:"MAC", signal:"Signal", wifiBtn:"Reset WiFi settings", sysCard:"System", uptime:"Uptime",
+    mac:"MAC", signal:"Signal", changeWifiBtn:"Change WiFi settings", resetWifiBtn:"Reset WiFi settings",
+    resetWifiConfirm:"Reset WiFi settings and restart the board? You'll need to reconnect via the setup access point.",
+    sysCard:"System", uptime:"Uptime",
     freemem:"Free memory", portalPass:"Portal password",
     portalHint:"Leave blank and save to remove protection. After setting it, the browser will ask for a login/password next time you open the portal (login: admin).",
     savePass:"Save password", addCard:"Adding the printer on a computer", win:"Windows 10 / 11", mac2:"macOS",
@@ -1154,7 +1160,9 @@ const dict = {
     status:"Статус", manufacturer:"Производитель", model:"Модель", serial:"Серийный номер",
     usbCard:"USB-подключение", status2:"Статус", devAddr:"Адрес устройства", bulkOut:"Bulk OUT",
     bulkIn:"Bulk IN", pktSize:"Размер пакета", wifiCard:"Wi-Fi", network:"Сеть", ip:"IP-адрес",
-    mac:"MAC", signal:"Сигнал", wifiBtn:"Сбросить WiFi-настройки", sysCard:"Система", uptime:"Аптайм",
+    mac:"MAC", signal:"Сигнал", changeWifiBtn:"Изменить настройки WiFi", resetWifiBtn:"Сбросить WiFi-настройки",
+    resetWifiConfirm:"Сбросить WiFi-настройки и перезагрузить плату? Потребуется заново подключиться через точку доступа настройки.",
+    sysCard:"Система", uptime:"Аптайм",
     freemem:"Свободная память", portalPass:"Пароль портала",
     portalHint:"Оставьте пустым и сохраните, чтобы убрать защиту. После установки браузер при следующем открытии портала запросит логин/пароль (логин: admin).",
     savePass:"Сохранить пароль", addCard:"Добавление принтера на компьютере", win:"Windows 10 / 11", mac2:"macOS",
@@ -1215,6 +1223,11 @@ function savePortalPassword(){
     .then(()=>{ document.getElementById('portalPassInput').value=''; });
 }
 
+function resetWifi(){
+  if (!confirm(dict[lang].resetWifiConfirm)) return;
+  fetch('/reset-wifi', {method:'POST'});
+}
+
 function fmtUptime(s){
   const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
   return h+'h '+m+'m '+sec+'s';
@@ -1263,11 +1276,12 @@ setInterval(refresh, 4000);
 const char WIFI_SETUP_HTML[] PROGMEM = R"HTML(
 <!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Настройка WiFi</title>
+<title>WiFi Setup</title>
 <style>
 body{font-family:sans-serif;max-width:360px;margin:40px auto;padding:0 16px;
      background:#0f172a;color:#e2e8f0}
-h2{font-size:1.2rem;margin-bottom:16px}
+header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+h2{font-size:1.2rem;margin:0}
 label{display:block;margin-top:14px;font-size:.85rem;color:#94a3b8}
 input,select{width:100%;padding:10px;margin-top:6px;box-sizing:border-box;
       background:#1e293b;border:1px solid #475569;border-radius:8px;color:#e2e8f0}
@@ -1277,40 +1291,74 @@ button{margin-top:20px;width:100%;padding:12px;background:#3b82f6;color:#fff;
 .chk input{width:auto}
 #entFields{display:none}
 small{color:#64748b}
+#langBtn{background:#7f1d1d;border:none;color:#fecaca;padding:7px 16px;
+         border-radius:8px;cursor:pointer;font-weight:600}
 </style></head><body>
-<h2>ESP32-C6 + CH375 Print Server</h2>
+<header>
+  <h2>ESP32-C6 + CH375 Print Server</h2>
+  <button id="langBtn" type="button" onclick="toggleLang()">RU</button>
+</header>
 <form action="/save" method="POST">
-<label>Сеть (SSID) <small id="scanStatus"></small></label>
+<label id="l_ssid">Network (SSID) <small id="scanStatus"></small></label>
 <select id="ssidSelect" onchange="document.getElementById('ssid').value=this.value">
-  <option value="">-- просканировать --</option>
+  <option value="" id="l_scanOpt">-- scan --</option>
 </select>
-<input type="text" name="ssid" id="ssid" placeholder="или введите вручную" required>
-<label>Пароль</label><input type="password" name="pass" id="pass">
+<input type="text" name="ssid" id="ssid" placeholder="or type manually" required>
+<label id="l_pass">Password</label><input type="password" name="pass" id="pass">
 <div class="chk">
   <input type="checkbox" name="enterprise" id="enterprise" onchange="toggleEnt()">
   <label style="margin:0">WPA2-Enterprise</label>
 </div>
 <div id="entFields">
   <label>Identity</label><input type="text" name="eapId">
-  <label>Username</label><input type="text" name="eapUser">
-  <label>Enterprise-пароль</label><input type="password" name="eapPass">
+  <label id="l_eapUser">Username</label><input type="text" name="eapUser">
+  <label id="l_eapPass">Enterprise password</label><input type="password" name="eapPass">
 </div>
-<button type="submit">Сохранить и подключиться</button>
+<button type="submit" id="l_submit">Save and connect</button>
 </form>
 <script>
+const dict = {
+  en: {ssid:"Network (SSID)", scanOpt:"-- scan --", pass:"Password",
+       eapUser:"Username", eapPass:"Enterprise password", submit:"Save and connect",
+       found:" found", scanFailed:"(scan failed)", placeholder:"or type manually"},
+  ru: {ssid:"Сеть (SSID)", scanOpt:"-- просканировать --", pass:"Пароль",
+       eapUser:"Username", eapPass:"Enterprise-пароль", submit:"Сохранить и подключиться",
+       found:" найдено", scanFailed:"(сканирование не удалось)", placeholder:"или введите вручную"}
+};
+let lang = localStorage.getItem('psLang') || 'ru';
+let lastScanCount = null;
+
+function applyLang(){
+  const d = dict[lang];
+  document.getElementById('l_ssid').innerHTML = d.ssid + ' <small id="scanStatus"></small>';
+  document.getElementById('l_scanOpt').textContent = d.scanOpt;
+  document.getElementById('l_pass').textContent = d.pass;
+  document.getElementById('l_eapUser').textContent = d.eapUser;
+  document.getElementById('l_eapPass').textContent = d.eapPass;
+  document.getElementById('l_submit').textContent = d.submit;
+  document.getElementById('ssid').placeholder = d.placeholder;
+  document.getElementById('langBtn').textContent = lang === 'ru' ? 'EN' : 'RU';
+  const statusEl = document.getElementById('scanStatus');
+  if (statusEl && lastScanCount !== null) statusEl.textContent = '(' + lastScanCount + d.found + ')';
+}
+function toggleLang(){ lang = lang === 'ru' ? 'en' : 'ru'; localStorage.setItem('psLang', lang); applyLang(); }
+
 function toggleEnt(){
   document.getElementById('entFields').style.display =
     document.getElementById('enterprise').checked ? 'block' : 'none';
 }
+applyLang();
 fetch('/scan').then(r=>r.json()).then(list=>{
   const sel = document.getElementById('ssidSelect');
-  document.getElementById('scanStatus').textContent = '(' + list.length + ' найдено)';
+  lastScanCount = list.length;
+  const statusEl = document.getElementById('scanStatus');
+  if (statusEl) statusEl.textContent = '(' + list.length + dict[lang].found + ')';
   list.forEach(s=>{
     const opt = document.createElement('option');
     opt.value = s; opt.textContent = s;
     sel.appendChild(opt);
   });
-}).catch(()=>{ document.getElementById('scanStatus').textContent = '(сканирование не удалось)'; });
+}).catch(()=>{ const el = document.getElementById('scanStatus'); if (el) el.textContent = dict[lang].scanFailed; });
 </script>
 </body></html>
 )HTML";
@@ -1417,6 +1465,15 @@ void handleSetPortalPassword() {
   configServer.send(200, "text/plain", "OK");
 }
 
+void handleResetWifi() {
+  if (!checkPortalAuth()) return;
+  Serial.println("[RESET] Сброс WiFi-настроек через веб-портал, перезагрузка!");
+  clearWifiCredentials();
+  configServer.send(200, "text/plain", "OK");
+  delay(300);
+  ESP.restart();
+}
+
 void webPortalBegin() {
   configServer.on("/", HTTP_GET, handleRoot);
   configServer.on("/wifi", HTTP_GET, handleWifiPage);
@@ -1425,6 +1482,7 @@ void webPortalBegin() {
   configServer.on("/api/status", HTTP_GET, handleApiStatus);
   configServer.on("/description.xml", HTTP_GET, handleDescriptionXml);
   configServer.on("/portal-password", HTTP_POST, handleSetPortalPassword);
+  configServer.on("/reset-wifi", HTTP_POST, handleResetWifi);
   configServer.begin();
   Serial.println("[Portal] Веб-портал запущен (работает постоянно).");
 }
