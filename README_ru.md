@@ -1,5 +1,7 @@
 # ESP32-C6-CH375-PrintServer
 
+[English version](README.md)
+
 Превращает обычный USB-принтер в сетевой WiFi-принтер с помощью
 ESP32-C6 Super Mini в паре с внешним USB Host контроллером **CH375B** —
 без Raspberry Pi и без выделенного компьютера.
