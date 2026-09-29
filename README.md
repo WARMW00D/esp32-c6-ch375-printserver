@@ -1,5 +1,7 @@
 # ESP32-C6-CH375-PrintServer
 
+[Русская версия](README_ru.md)
+
 Turn a plain USB printer into a WiFi network printer using an ESP32-C6
 Super Mini paired with a **CH375B** external USB Host controller chip —
 no Raspberry Pi, no dedicated PC required.
