@@ -1,7 +1,5 @@
 # ESP32-C6-CH375-PrintServer
 
-[Русская версия](README_ru.md)
-
 Turn a plain USB printer into a WiFi network printer using an ESP32-C6
 Super Mini paired with a **CH375B** external USB Host controller chip —
 no Raspberry Pi, no dedicated PC required.
@@ -18,9 +16,7 @@ wirelessly.
 
 Built and tested against, for example, an **HP LaserJet P2015**, but
 should work with any printer exposing a standard bidirectional USB
-Printer Class (07/01) interface. 
-
-![Portal](esp32-c6-ch375-printserver-portal.png)
+Printer Class (07/01) interface.
 
 ## Features
 
@@ -89,6 +85,8 @@ Printer Class (07/01) interface.
 | RXD | not connected (unused in parallel mode) |
 | RST | not connected (it's an output on this chip, not an input) |
 
+![Wiring diagram](esp32-c6-ch375b-wiring.svg)
+
 > **Important — GPIO12/GPIO13 are off-limits.** On the ESP32-C6, these
 > two pins are fixed at the silicon level to the native USB Serial/JTAG
 > controller (D-/D+), even though most board pinout diagrams don't mark
@@ -103,9 +101,6 @@ Printer Class (07/01) interface.
   as-is; no extra wiring needed for those.
 - **Optional: a 0.91" I2C OLED display** (SSD1306, 128×32) — GPIO4 (SDA)
   and GPIO5 (SCL) on this board are free and used for it if enabled.
-
-![Device-1](esp32-c6-ch375b-printserver-device-1.png)
-![Device-2](esp32-c6-ch375b-printserver-device-2.png)
 
 ## Known-good / known-tricky printers
 
